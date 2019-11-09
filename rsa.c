@@ -14,6 +14,7 @@
 #include <math.h>
 
 llint p, q, e, d, n;
+llint GCD(llint a, llint b);
 
 // not use
 // llint power(llint nu1, llint nu2){
@@ -42,7 +43,9 @@ llint p, q, e, d, n;
 
 // distinguish whether the value is even or odd
 bool isEven(llint num){
-    if(GCD(num,2) == 1){
+    llint tm;
+    tm = GCD(num,2);
+    if(tm == 1){
         return TRUE;
     }
     else{
@@ -158,7 +161,7 @@ llint ModPow(llint base, llint exp, llint n) {
     }
     else{
         while(exp > 1){
-            if(isEven(n) == TRUE){ // if n is even
+            if(isEven(exp) == TRUE){ // if n is even -> "square and multiply" algo
                 base = base * base;
                 exp = exp >> 1; // divde 2
             }
@@ -303,7 +306,7 @@ void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
  */
 llint miniRSA(llint data, llint key, llint n) {
     llint result;
-    result = modPow(data,key,n);
+    result = ModPow(data,key,n);
     return result;
 }
 
