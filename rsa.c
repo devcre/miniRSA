@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include "rsa.h"
+#include <math.h>
 
 llint p, q, e, d, n;
 
@@ -38,6 +39,34 @@ llint p, q, e, d, n;
 //     }
 //     return result;
 // }
+
+// distinguish whether the value is even or odd
+bool isEven(llint num){
+    if(GCD(num,2) == 1){
+        return TRUE;
+    }
+    else{
+        return FALSE;
+    }
+}
+
+// generate sudo-prime number
+llint rndOddGen(){
+    llint val;
+    while(TRUE){
+        val = WELLRNG512a();
+        while(TRUE){
+            if(floor(val) == val){
+                break;
+            }
+            val *= 10;
+        }
+        if(isEven(val)==FALSE){ // if val is odd
+            break;
+        }
+    }
+    return val;
+}
 
 /*
  * @brief     모듈러 덧셈 연산을 하는 함수.
@@ -129,7 +158,7 @@ llint ModPow(llint base, llint exp, llint n) {
     }
     else{
         while(exp > 1){
-            if(GCD(n,2) == 1){ // if n is even
+            if(isEven(n) == TRUE){ // if n is even
                 base = base * base;
                 exp = exp >> 1; // divde 2
             }
@@ -156,7 +185,32 @@ llint ModPow(llint base, llint exp, llint n) {
                이론적으로 4N(99.99%) 이상 되는 값을 선택하도록 한다. 
  */
 bool IsPrime(llint testNum, llint repeat) {
-    llint result;
+    bool result = FALSE;
+    llint rnum;
+    llint nn = testNum - 1;
+    llint s = 0;
+    llint d = 0;
+    llint i;
+
+    rnum = rndOddGen();
+
+    while(nn % 2 == 0){
+        s += 1;
+        d = nn >> 1; // divide with 2
+    }
+    while((rnum > nn) || (rnum == nn)){ // 1 < rnum < nn
+        rnum = rndOddGen();
+    }
+
+    if(ModPow(rnum,d,testNum) == 1){
+        result = TRUE;
+    }
+
+    for(i=0;i<s;i++){
+        if(ModPow(rnum,pow(2,i)*d,testNum) == nn){
+            result = TRUE;
+        }
+    }
     
     return result;
 }
@@ -193,6 +247,50 @@ llint ModInv(llint a, llint m) {
  * @todo      과제 안내 문서의 제한사항을 참고하여 작성한다.
  */
 void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
+
+    // Select two large primes at random
+    while(TRUE){
+        llint sudo_p = rndOddGen();
+        llint sudo_q = rndOddGen();
+        while(TRUE){
+            printf("random-number1 %lld selected.\n", sudo_p);
+            if(IsPrime(sudo_p,10) == TRUE){
+                printf("%lld may be Prime.\n\n",sudo_p);
+                *p = sudo_p;
+                break;
+            }
+            printf("%lld is not Prime.\n\n",sudo_p);
+        }
+        while(TRUE){
+            printf("random-number2 %lld selected.\n", sudo_q);
+            if(IsPrime(sudo_q,10) == TRUE){
+                printf("%lld may be Prime.\n\n",sudo_q);
+                *q = sudo_q;
+                break;
+            }
+            printf("%lld is not Prime.\n\n",sudo_q);
+        }
+        break;
+        // if(*p * *q > pow(2,53)){
+        //     break;
+        // }
+    }
+
+    *n = (*p)*(*q);
+
+    llint phi_n;
+    phi_n = (*p-1)*(*q-1);
+
+    // Select at random the excryption key e
+    while(TRUE){
+        *e = rndOddGen();
+        if((*e > phi_n) && (GCD(*e,phi_n) == 1)){
+            break;
+        }
+    }
+
+    // Solve equation e*d = 1 mod phi_n
+    *d = ModInv(*e, *n);
 }
 
 /*
@@ -204,6 +302,8 @@ void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
  * @todo      과제 안내 문서의 제한사항을 참고하여 작성한다.
  */
 llint miniRSA(llint data, llint key, llint n) {
+    llint result;
+    result = modPow(data,key,n);
     return result;
 }
 
