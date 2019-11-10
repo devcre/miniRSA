@@ -27,6 +27,25 @@ llint power(llint nu1, llint nu2){
     return result;
 }
 
+// equal to 'numb1 % numb2'
+llint div_r(llint numb1, llint numb2){
+    llint result = numb1;
+    while(numb1 > numb2){
+        result -= numb2;
+    }
+    return result;
+}
+
+llint div_q(llint numb1, llint numb2){
+    llint result = numb1;
+    llint count = 0;
+    while(numb1 > numb2){
+        result -= numb2;
+        count += 1;
+    }
+    return count;
+}
+
 // // not active
 // llint divide(llint nu1, llint nu2){
 //     llint k = 0;
@@ -56,9 +75,10 @@ bool isOdd(llint num){
 // generate sudo-prime number
 llint rndOddGen(){
     llint val;
-    llint MAX = 9999;
-    llint MIN = 99;
+    llint MAX = 999;
+    llint MIN = 9;
     uint seedd = time(NULL);
+
     InitWELLRNG512a(&seedd);
     while(TRUE){
         val = (WELLRNG512a() * (MAX-MIN)) + MIN;
@@ -241,17 +261,12 @@ bool IsPrime(llint testNum, llint repeat) {
                 break;
             }
         }
-        printf("rnum: %lld, dd: %lld, testnum: %lld\n\n", rnum, dd, testNum);
         for(llint i=0;i<s;i++){
             if((ModPow(rnum, power(2,i)*dd, testNum) != nn) && (ModPow(rnum, dd, testNum) != 1)){
                 result = FALSE;
             }
-            printf("ModPow(rnum, power(2,i)*dd, testNum): %lld\n", ModPow(rnum, power(2,i)*dd, testNum));
-            printf("ModPow(rnum, dd, testNum): %lld\n", ModPow(rnum, dd, testNum));
         }
     }
-
-    printf("IsPrime result: %d\n", result);
     return result;
 }
 
@@ -266,11 +281,33 @@ llint ModInv(llint a, llint m) {
     llint result;
     llint val;
     llint res;
+
+    // llint mm = m;
+    // llint tt, qq;
+    // llint xx = 0;
+    // llint yy = 1;
+    
+    // if(m == 1) return 1;
+    // while(a > 1){
+    //     qq = div_q(a,mm);
+    //     tt = mm;
+    //     mm = div_r(a,mm);
+    //     a = tt;
+
+    //     tt = xx;
+    //     xx = yy - qq * xx;
+    //     yy = tt;
+    // }
+    // if(yy < 0) yy += m;
+    // result = yy;
+
+    // BRUTE FORCE METHOD
+    val = a;
     while(val > m){
         val -= m;
     }
 
-    for(int xc=1; xc<m; xc++){
+    for(llint xc=1; xc<m; xc++){
         res = val*xc;
         while(res > m){
             res -= m;
@@ -311,7 +348,7 @@ void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
         while(TRUE){
             sudo_q = rndOddGen();
             printf("random-number2 %lld selected.\n", sudo_q);
-            if(IsPrime(sudo_q,10) == TRUE){
+            if(IsPrime(sudo_q,10) == TRUE && sudo_q != *p){
                 printf("%lld may be Prime.\n\n",sudo_q);
                 *q = sudo_q;
                 break;
@@ -340,13 +377,12 @@ void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
                 break;
             }
         }
-        printf("e: %lld\n", *e);
         if((*e < phi_n) && (GCD(*e,phi_n) == 1)){
             break;
         }
     }
     // Solve equation e*d = 1 mod phi_n
-    *d = ModInv(*e, *n);
+    *d = ModInv(*e, phi_n);
 }
 
 /*
