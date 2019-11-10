@@ -42,14 +42,14 @@ llint power(llint nu1, llint nu2){
 // }
 
 // distinguish whether the value is even or odd
-// if num is even, return '0', otherwise '1'
-bool isEven(llint num){
+// if num is odd, return TRUE, otherwise FALSE
+bool isOdd(llint num){
     // printf("GCD(%lld,2): %lld\n", num, GCD(num,2));
     if(GCD(num,2) == 1){ 
-        return '1';
+        return TRUE;
     }
     else{
-        return '0';
+        return FALSE;
     }
 }
 
@@ -62,7 +62,7 @@ llint rndOddGen(){
     InitWELLRNG512a(&seedd);
     while(TRUE){
         val = (WELLRNG512a() * (MAX-MIN)) + MIN;
-        if(isEven(val)=='1'){ // if val is odd
+        if(isOdd(val)==TRUE){ // if val is odd
             break;
         }
     }
@@ -154,11 +154,11 @@ llint ModPow(llint base, llint exp, llint n) {
 
     // Recursive call
     if(exp > 1){
-        if(isEven(exp) == '1'){
-            return ModMul(ModPow(base*base, exp>>1, n), ModPow(base*base, exp>>1, n), n);
+        if(isOdd(exp) != TRUE){
+            return ModPow(base*base, exp>>1, n);
         }
         else{
-            return ModMul(ModPow(base, 1, n), ModPow(base, exp-1, n), n);
+            return ModMul(base, ModPow(base*base, (exp-1)>>1, n), n);
         }
     }
     else if(exp == 0){
@@ -180,7 +180,7 @@ llint ModPow(llint base, llint exp, llint n) {
     // }
     // else{
     //     while(exp > 1){
-    //         if(isEven(exp) == '1'){ // if n is even -> "square and multiply" algo
+    //         if(isOdd(exp) == TRUE){ // if n is even -> "square and multiply" algo
     //             base = base * base;
     //             exp = exp >> 1; // divde 2
     //         }
@@ -198,7 +198,6 @@ llint ModPow(llint base, llint exp, llint n) {
     //     }
     //     result = ModMul(base, count, n);
     // }
-    printf("result: %lld\n", result);
     return result;
 }
 
@@ -211,14 +210,14 @@ llint ModPow(llint base, llint exp, llint n) {
                이론적으로 4N(99.99%) 이상 되는 값을 선택하도록 한다. 
  */
 bool IsPrime(llint testNum, llint repeat) {
-    bool result = '1';
+    bool result = TRUE;
     llint rnum;  // random integer 'a', 1 < a < testNum-1
     llint nn = testNum - 1;
     llint s = 0;
     llint dd = 0;
 
     // exception
-    if(testNum == 2 || testNum ==3) return '1';
+    if(testNum == 2 || testNum ==3) return TRUE;
     if(testNum <= 1 || !(testNum & 1)) return result;
 
     llint MAX = nn;
@@ -227,7 +226,7 @@ bool IsPrime(llint testNum, llint repeat) {
     // Find integers nn = 2^s*d
     dd = nn;
     while(TRUE){
-        if(isEven(dd) == '1'){ // if d is odd
+        if(isOdd(dd) == TRUE){ // if dd is odd
             break;
         }
         s += 1;
@@ -238,17 +237,21 @@ bool IsPrime(llint testNum, llint repeat) {
         while(TRUE){
             // Select random integer rnum ('a')
             rnum = (WELLRNG512a() * (MAX-MIN)) + MIN;
-            if(isEven(rnum)=='1'){ // if val is odd
+            if(isOdd(rnum)==TRUE){ // if val is odd
                 break;
             }
         }
+        printf("rnum: %lld, dd: %lld, testnum: %lld\n\n", rnum, dd, testNum);
         for(llint i=0;i<s;i++){
             if((ModPow(rnum, power(2,i)*dd, testNum) != nn) && (ModPow(rnum, dd, testNum) != 1)){
-                result = '0';
+                result = FALSE;
             }
+            printf("ModPow(rnum, power(2,i)*dd, testNum): %lld\n", ModPow(rnum, power(2,i)*dd, testNum));
+            printf("ModPow(rnum, dd, testNum): %lld\n", ModPow(rnum, dd, testNum));
         }
     }
 
+    printf("IsPrime result: %d\n", result);
     return result;
 }
 
@@ -261,14 +264,21 @@ bool IsPrime(llint testNum, llint repeat) {
  */
 llint ModInv(llint a, llint m) {
     llint result;
-    llint val = 1;
+    llint val;
+    llint res;
+    while(val > m){
+        val -= m;
+    }
 
-    while(val < m){
-        if(ModMul(a,val,m) == 1){
-            result = val;
+    for(int xc=1; xc<m; xc++){
+        res = val*xc;
+        while(res > m){
+            res -= m;
+        }
+        if(res == 1){
+            result = xc;
             break;
         }
-        val += 1;
     }
     return result;
 }
@@ -291,7 +301,7 @@ void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
         while(TRUE){
             sudo_p = rndOddGen();
             printf("random-number1 %lld selected.\n", sudo_p);
-            if(IsPrime(sudo_p,10) == '1'){
+            if(IsPrime(sudo_p,10) == TRUE){
                 printf("%lld may be Prime.\n\n",sudo_p);
                 *p = sudo_p;
                 break;
@@ -301,7 +311,7 @@ void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
         while(TRUE){
             sudo_q = rndOddGen();
             printf("random-number2 %lld selected.\n", sudo_q);
-            if(IsPrime(sudo_q,10) == '1'){
+            if(IsPrime(sudo_q,10) == TRUE){
                 printf("%lld may be Prime.\n\n",sudo_q);
                 *q = sudo_q;
                 break;
@@ -318,15 +328,23 @@ void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
 
     llint phi_n;
     phi_n = (*p-1)*(*q-1);
+    llint MAX = phi_n - 1;
+    llint MIN = 2;
 
-    // Select at random the excryption key e
+    // Select at random the excryption key e,, 1 < e < phi_n
     while(TRUE){
-        *e = rndOddGen();
-        if((*e > phi_n) && (GCD(*e,phi_n) == 1)){
+        while(TRUE){
+            // Select random integer ('e')
+            *e = (WELLRNG512a() * (MAX-MIN)) + MIN;
+            if(isOdd(*e)==TRUE){ // if val is odd
+                break;
+            }
+        }
+        printf("e: %lld\n", *e);
+        if((*e < phi_n) && (GCD(*e,phi_n) == 1)){
             break;
         }
     }
-
     // Solve equation e*d = 1 mod phi_n
     *d = ModInv(*e, *n);
 }
