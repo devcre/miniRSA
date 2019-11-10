@@ -1,7 +1,7 @@
 /*
  * @file    rsa.c
- * @author  작성자 이름 / 학번
- * @date    작성 일자
+ * @author  Kyoung chan Cho / 2015038622
+ * @date    2019/11/10
  * @brief   mini RSA implementation code
  * @details 세부 설명
  */
@@ -16,16 +16,16 @@
 llint p, q, e, d, n;
 llint GCD(llint a, llint b);
 
-// not use
-// llint power(llint nu1, llint nu2){
-//     llint k;
-//     llint result = 1;
 
-//     for(k=0; k<nu2; k++){
-//         result *= nu1;
-//     }
-//     return result;
-// }
+llint power(llint nu1, llint nu2){
+    llint k;
+    llint result = 1;
+
+    for(k=0; k<nu2; k++){
+        result *= nu1;
+    }
+    return result;
+}
 
 // // not active
 // llint divide(llint nu1, llint nu2){
@@ -42,29 +42,25 @@ llint GCD(llint a, llint b);
 // }
 
 // distinguish whether the value is even or odd
+// if num is even, return '0', otherwise '1'
 bool isEven(llint num){
-    llint tm;
-    tm = GCD(num,2);
-    if(tm == 1){
-        return TRUE;
+    printf("GCD(%lld,2): %lld\n", num, GCD(num,2));
+    if(GCD(num,2) == 1){ 
+        return '1';
     }
     else{
-        return FALSE;
+        return '0';
     }
 }
 
 // generate sudo-prime number
 llint rndOddGen(){
     llint val;
+    llint MAX = 999999;
+    llint MIN = 999;
     while(TRUE){
-        val = WELLRNG512a();
-        while(TRUE){
-            if(floor(val) == val){
-                break;
-            }
-            val *= 10;
-        }
-        if(isEven(val)==FALSE){ // if val is odd
+        val = (WELLRNG512a() * (MAX-MIN)) + MIN;
+        if(isEven(val)=='1'){ // if val is odd
             break;
         }
     }
@@ -161,7 +157,7 @@ llint ModPow(llint base, llint exp, llint n) {
     }
     else{
         while(exp > 1){
-            if(isEven(exp) == TRUE){ // if n is even -> "square and multiply" algo
+            if(isEven(exp) == '1'){ // if n is even -> "square and multiply" algo
                 base = base * base;
                 exp = exp >> 1; // divde 2
             }
@@ -170,11 +166,14 @@ llint ModPow(llint base, llint exp, llint n) {
                 base = base * base;
                 exp = (exp - 1) >> 1; // divide 2
             }
-            while(base > n){
-                base = base - n;
-            }
         }
-        result = ModMul(base, count+1, n);
+        while(base > n){
+            base = base - n;
+        }
+        if(count == 0){
+            count = 1;
+        }
+        result = ModMul(base, count, n);
     }
     return result;
 }
@@ -188,33 +187,49 @@ llint ModPow(llint base, llint exp, llint n) {
                이론적으로 4N(99.99%) 이상 되는 값을 선택하도록 한다. 
  */
 bool IsPrime(llint testNum, llint repeat) {
-    bool result = FALSE;
-    llint rnum;
+    bool result = '0';
+    llint rnum;  // random integer 'a', 1 < a < testNum-1
     llint nn = testNum - 1;
     llint s = 0;
     llint d = 0;
     llint i;
 
-    rnum = rndOddGen();
+    // exception
+    if(testNum == 2 || testNum ==3) return '1';
+    if(testNum <= 1 || !(testNum & 1)) return result;
 
-    while(nn % 2 == 0){
-        s += 1;
-        d = nn >> 1; // divide with 2
-    }
-    while((rnum > nn) || (rnum == nn)){ // 1 < rnum < nn
-        rnum = rndOddGen();
-    }
-
-    if(ModPow(rnum,d,testNum) == 1){
-        result = TRUE;
-    }
-
-    for(i=0;i<s;i++){
-        if(ModPow(rnum,pow(2,i)*d,testNum) == nn){
-            result = TRUE;
+    // Select random integer rnum ('a')
+    llint MAX = nn;
+    llint MIN = 1;
+    while(TRUE){
+        rnum = (WELLRNG512a() * (MAX-MIN)) + MIN;
+        if(isEven(rnum)=='1'){ // if val is odd
+            break;
         }
     }
-    
+
+    // Find integers nn = 2^s*d
+    d = nn;
+    while(TRUE){
+        if(isEven(d) == '1'){ // if d is odd
+            break;
+        }
+        s += 1;
+        d = d >> 1; // divide with 2
+    }
+
+    for(int ktmp=0; ktmp<repeat; ktmp++){ // repeat 'ktmp' times
+        if(ModPow(rnum,d,testNum) == 1){
+            result = '1';
+        }
+
+        for(i=0;i<s;i++){
+            if(ModPow(rnum,power(2,i)*d,testNum) == nn){
+                result = '1';
+            }
+        }
+    }
+
     return result;
 }
 
@@ -250,14 +265,14 @@ llint ModInv(llint a, llint m) {
  * @todo      과제 안내 문서의 제한사항을 참고하여 작성한다.
  */
 void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
-
     // Select two large primes at random
     while(TRUE){
         llint sudo_p = rndOddGen();
         llint sudo_q = rndOddGen();
+        printf("%lld, %lld\n", sudo_p, sudo_q);
         while(TRUE){
             printf("random-number1 %lld selected.\n", sudo_p);
-            if(IsPrime(sudo_p,10) == TRUE){
+            if(IsPrime(sudo_p,10) == '1'){
                 printf("%lld may be Prime.\n\n",sudo_p);
                 *p = sudo_p;
                 break;
@@ -266,7 +281,7 @@ void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
         }
         while(TRUE){
             printf("random-number2 %lld selected.\n", sudo_q);
-            if(IsPrime(sudo_q,10) == TRUE){
+            if(IsPrime(sudo_q,10) == '1'){
                 printf("%lld may be Prime.\n\n",sudo_q);
                 *q = sudo_q;
                 break;
