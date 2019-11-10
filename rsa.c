@@ -44,7 +44,7 @@ llint power(llint nu1, llint nu2){
 // distinguish whether the value is even or odd
 // if num is even, return '0', otherwise '1'
 bool isEven(llint num){
-    printf("GCD(%lld,2): %lld\n", num, GCD(num,2));
+    // printf("GCD(%lld,2): %lld\n", num, GCD(num,2));
     if(GCD(num,2) == 1){ 
         return '1';
     }
@@ -56,8 +56,10 @@ bool isEven(llint num){
 // generate sudo-prime number
 llint rndOddGen(){
     llint val;
-    llint MAX = 999999;
-    llint MIN = 999;
+    llint MAX = 9999;
+    llint MIN = 99;
+    uint seedd = time(NULL);
+    InitWELLRNG512a(&seedd);
     while(TRUE){
         val = (WELLRNG512a() * (MAX-MIN)) + MIN;
         if(isEven(val)=='1'){ // if val is odd
@@ -116,16 +118,16 @@ llint ModMul(llint x, llint y, llint n) {
     llint result;
     // (x * y)mod n = ((x mod n) * (y mod n))mod n
     while(x > n){
-        x = x - n;
+        x -= n;
     }
     while(y > n){
-        y = y - n;
+        y -= n;
     }
 
     result = x * y;
     
     while(result > n){
-        result = result - n;
+        result -= n;
     }
     return result;
 }
@@ -144,37 +146,59 @@ llint ModPow(llint base, llint exp, llint n) {
     // should n is positive number
     llint result = 0;
     llint count = 0;
+
     // base^exp momd n = ((base mod n)^exp) mod n
     while(base > n){
         base = base - n;
     }
 
-    if(n == 0){
-        result = 1;
+    // Recursive call
+    if(exp > 1){
+        if(isEven(exp) == '1'){
+            return ModMul(ModPow(base*base, exp>>1, n), ModPow(base*base, exp>>1, n), n);
+        }
+        else{
+            return ModMul(ModPow(base, 1, n), ModPow(base, exp-1, n), n);
+        }
     }
-    else if(n == 1){
-        result = base;
+    else if(exp == 0){
+        return 1;
+    }
+    else if(exp == 1){
+        return base;
     }
     else{
-        while(exp > 1){
-            if(isEven(exp) == '1'){ // if n is even -> "square and multiply" algo
-                base = base * base;
-                exp = exp >> 1; // divde 2
-            }
-            else{
-                count += 1;
-                base = base * base;
-                exp = (exp - 1) >> 1; // divide 2
-            }
-        }
-        while(base > n){
-            base = base - n;
-        }
-        if(count == 0){
-            count = 1;
-        }
-        result = ModMul(base, count, n);
+        printf("Unappropriate value\n");
+        return 1;
     }
+
+    // if(n == 0){
+    //     result = 1;
+    // }
+    // else if(n == 1){
+    //     result = base;
+    // }
+    // else{
+    //     while(exp > 1){
+    //         if(isEven(exp) == '1'){ // if n is even -> "square and multiply" algo
+    //             base = base * base;
+    //             exp = exp >> 1; // divde 2
+    //         }
+    //         else{
+    //             count += 1;
+    //             base = base * base;
+    //             exp = (exp - 1) >> 1; // divide 2
+    //         }
+    //         while(base > n){
+    //             base = base - n;
+    //         }
+    //     }
+    //     if(count == 0){
+    //         count = 1;
+    //     }
+    //     result = ModMul(base, count, n);
+    // }
+    printf("result: %lld\n", result);
     return result;
 }
 
@@ -187,45 +211,40 @@ llint ModPow(llint base, llint exp, llint n) {
                이론적으로 4N(99.99%) 이상 되는 값을 선택하도록 한다. 
  */
 bool IsPrime(llint testNum, llint repeat) {
-    bool result = '0';
+    bool result = '1';
     llint rnum;  // random integer 'a', 1 < a < testNum-1
     llint nn = testNum - 1;
     llint s = 0;
-    llint d = 0;
-    llint i;
+    llint dd = 0;
 
     // exception
     if(testNum == 2 || testNum ==3) return '1';
     if(testNum <= 1 || !(testNum & 1)) return result;
 
-    // Select random integer rnum ('a')
     llint MAX = nn;
     llint MIN = 1;
-    while(TRUE){
-        rnum = (WELLRNG512a() * (MAX-MIN)) + MIN;
-        if(isEven(rnum)=='1'){ // if val is odd
-            break;
-        }
-    }
 
     // Find integers nn = 2^s*d
-    d = nn;
+    dd = nn;
     while(TRUE){
-        if(isEven(d) == '1'){ // if d is odd
+        if(isEven(dd) == '1'){ // if d is odd
             break;
         }
         s += 1;
-        d = d >> 1; // divide with 2
+        dd >>= 1; // divide with 2
     }
 
     for(int ktmp=0; ktmp<repeat; ktmp++){ // repeat 'ktmp' times
-        if(ModPow(rnum,d,testNum) == 1){
-            result = '1';
+        while(TRUE){
+            // Select random integer rnum ('a')
+            rnum = (WELLRNG512a() * (MAX-MIN)) + MIN;
+            if(isEven(rnum)=='1'){ // if val is odd
+                break;
+            }
         }
-
-        for(i=0;i<s;i++){
-            if(ModPow(rnum,power(2,i)*d,testNum) == nn){
-                result = '1';
+        for(llint i=0;i<s;i++){
+            if((ModPow(rnum, power(2,i)*dd, testNum) != nn) && (ModPow(rnum, dd, testNum) != 1)){
+                result = '0';
             }
         }
     }
@@ -267,10 +286,10 @@ llint ModInv(llint a, llint m) {
 void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
     // Select two large primes at random
     while(TRUE){
-        llint sudo_p = rndOddGen();
-        llint sudo_q = rndOddGen();
-        printf("%lld, %lld\n", sudo_p, sudo_q);
+        llint sudo_p;
+        llint sudo_q;
         while(TRUE){
+            sudo_p = rndOddGen();
             printf("random-number1 %lld selected.\n", sudo_p);
             if(IsPrime(sudo_p,10) == '1'){
                 printf("%lld may be Prime.\n\n",sudo_p);
@@ -280,6 +299,7 @@ void miniRSAKeygen(llint *p, llint *q, llint *e, llint *d, llint *n) {
             printf("%lld is not Prime.\n\n",sudo_p);
         }
         while(TRUE){
+            sudo_q = rndOddGen();
             printf("random-number2 %lld selected.\n", sudo_q);
             if(IsPrime(sudo_q,10) == '1'){
                 printf("%lld may be Prime.\n\n",sudo_q);
@@ -329,13 +349,13 @@ llint GCD(llint a, llint b) {
     llint prev_a;
 
     while(b != 0) {
-        printf("GCD(%lld, %lld)\n", a, b);
+        // printf("GCD(%lld, %lld)\n", a, b);
         prev_a = a;
         a = b;
         while(prev_a >= b) prev_a -= b;
         b = prev_a;
     }
-    printf("GCD(%lld, %lld)\n\n", a, b);
+    // printf("GCD(%lld, %lld)\n\n", a, b);
     return a;
 }
 
